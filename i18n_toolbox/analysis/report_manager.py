@@ -1,10 +1,11 @@
 # pyright: standard
+
 from pathlib import Path
 from typing import Dict, List
 
-from i18n_toolbox.utils.console import log_info, log_warn
-
+from ..utils.console import log_info, log_warn
 from .check_missing import check_missing
+from .lang_scan import lang_scan
 
 
 class ReportManager:
@@ -23,9 +24,13 @@ class ReportManager:
             json.dump(data, f, ensure_ascii=False, indent=2)
         return path
 
-    def run_missing_check(self, all_data: Dict[str, Dict[str, str]], base: str, target: str | List[str]) -> None:
-        targets: List[str] = [target] if isinstance(target, str) else target
+    def run_lang_scan(self, all_data: Dict[str, Dict[str, str]], targets: List[str]):
+        reports = lang_scan(all_data, targets=targets)
+        for name, report in reports.items():
+            report_path = self.save_json(report, name)
+            log_info("扫描报告已生成:", report_path)
 
+    def run_missing_check(self, all_data: Dict[str, Dict[str, str]], base: str, targets: List[str]) -> None:
         for lang in targets:
             if lang not in all_data:
                 log_warn(f"语言 {lang} 不存在于数据中，跳过")
