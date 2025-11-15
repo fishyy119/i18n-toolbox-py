@@ -20,7 +20,7 @@ def main() -> None:
     subparsers = parser.add_subparsers(dest="command", required=False)
 
     # --- scan 子命令 ---
-    parser_scan = subparsers.add_parser("scan", help="扫描语言文件并加载")
+    parser_scan = subparsers.add_parser("scan", help="扫描语言文件")
     parser_scan.add_argument(
         "-l", "--lang", nargs="+", type=str, default=None, help="指定要扫描的语言(可多选),默认扫描所有语言"
     )
@@ -30,7 +30,12 @@ def main() -> None:
     parser_missing.add_argument("-b", "--base", required=True, type=str, help="基准语言代码")
     parser_missing.add_argument("-t", "--target", default=None, nargs="+", type=str, help="目标语言代码(可多选)")
 
-    # --- check-duplicate 子命令 ---
+    # --- fill-missing 子命令 ---
+    parser_fill = subparsers.add_parser("fill-missing", help="根据基准语言自动填充目标语言缺失字段，值设为空")
+    parser_fill.add_argument("-b", "--base", required=True, type=str, help="基准语言代码")
+    parser_fill.add_argument("-t", "--target", default=None, nargs="+", type=str, help="目标语言代码(可多选)")
+
+    # TODO: --- check-duplicate 子命令 ---
     parser_duplicate = subparsers.add_parser("check-duplicate", help="检查字段重复性")
 
     # --- sync-order 子命令 ---
@@ -56,6 +61,11 @@ def main() -> None:
         base_lang = args.base
         target_langs = args.target or [lang for lang in all_data.keys() if lang != base_lang]
         report_manager.run_missing_check(all_data, base=base_lang, targets=target_langs)
+
+    elif command == "fill-missing":
+        base_lang = args.base
+        target_langs = args.target or [lang for lang in all_data.keys() if lang != base_lang]
+        loader.fill_missing(base_lang, target_langs)
 
     elif command == "check-duplicate":
         # check_duplicate(all_data)

@@ -3,7 +3,8 @@
 from pathlib import Path
 from typing import Dict, List
 
-from ..utils.console import log_info, log_warn
+from ..utils.console import log_error, log_info, log_warn
+from ..utils.json_tools import save_json
 from .check_missing import check_missing
 from .lang_scan import lang_scan
 
@@ -15,22 +16,22 @@ class ReportManager:
         self.report_dir: Path = Path(report_dir).resolve()
         self.report_dir.mkdir(parents=True, exist_ok=True)
 
-    def save_json(self, data: Dict | List, filename: str) -> Path:
+    def save_report(self, data: Dict, filename: str) -> Path:
         """保存 JSON 报告"""
         path = self.report_dir / filename
-        import json
-
-        with path.open("w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        save_json(path, data)
         return path
 
     def run_lang_scan(self, all_data: Dict[str, Dict[str, str]], targets: List[str]):
         reports = lang_scan(all_data, targets=targets)
         for name, report in reports.items():
-            report_path = self.save_json(report, name)
+            report_path = self.save_report(report, name)
             log_info("扫描报告已生成:", report_path)
 
     def run_missing_check(self, all_data: Dict[str, Dict[str, str]], base: str, targets: List[str]) -> None:
+        if base not in all_data:
+            log_error(f"基准语言 {base} 不存在于数据中")
+
         for lang in targets:
             if lang not in all_data:
                 log_warn(f"语言 {lang} 不存在于数据中，跳过")
@@ -42,5 +43,5 @@ class ReportManager:
                 "missing_count": len(missing_keys),
                 "missing_keys": missing_keys,
             }
-            report_path = self.save_json(report, f"{lang}_missing.json")
+            report_path = self.save_report(report, f"{lang}_missing.json")
             log_info("报告已生成:", report_path)
