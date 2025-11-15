@@ -1,0 +1,18 @@
+# 目标项目根目录
+project_root = "/path/to/your/project"
+
+[i18n]
+# 所有语言目录所在的相对路径（相对于 project_root）
+base_dir = "src/i18n"
+
+# 语言文件结构
+# 一种语言一个目录，如：
+# src/i18n/en/*.json
+# src/i18n/zh/*.json
+pattern = "{lang}/*.json"
+
+# 如果希望强制语言列表，也可以手动指定
+# languages = ["en", "zh", "ja"]
+
+# 在检查未引用字段时扫描的源代码目录
+scan_dirs = ["src", "lib"]
