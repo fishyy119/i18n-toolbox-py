@@ -40,6 +40,8 @@ def main() -> None:
 
     # --- sync-order 子命令 ---
     parser_sync = subparsers.add_parser("sync-order", help="统一不同语言 JSON 的字段顺序")
+    parser_sync.add_argument("-b", "--base", required=True, type=str, help="基准语言代码")
+    parser_sync.add_argument("-t", "--target", default=None, nargs="+", type=str, help="目标语言代码(可多选)")
 
     args = parser.parse_args()
 
@@ -68,12 +70,12 @@ def main() -> None:
         loader.fill_missing(base_lang, target_langs)
 
     elif command == "check-duplicate":
-        # check_duplicate(all_data)
-        print("检查重复字段完成（示例输出）")
+        raise NotImplementedError("未完成功能")
 
     elif command == "sync-order":
-        # sync_field_order(all_data)
-        print("字段顺序同步完成（示例输出）")
+        base_lang = args.base
+        target_langs = args.target or [lang for lang in all_data.keys() if lang != base_lang]
+        loader.sync_order(base_lang, target_langs)
 
 
 if __name__ == "__main__":

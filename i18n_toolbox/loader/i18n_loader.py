@@ -37,6 +37,20 @@ class I18nLoader:
         self.all_data = all_data
         return all_data
 
+    def save_language(self, lang: str, data: Dict[str, str]):
+        # 写回原 JSON 文件
+        files = expand_pattern(self.cfg.base_dir, self.cfg.pattern, lang)
+        for path in files:
+            # 只写回 namespace 对应的键
+            namespace = path.stem
+            json_to_write = unflatten_json(data, namespace)
+
+            bak_file = self.bak_dir / lang / path.name
+            bak_file.parent.mkdir(parents=True, exist_ok=True)
+
+            shutil.copy2(path, bak_file)  # 备份
+            save_json(path, json_to_write)
+
     def fill_missing(self, base: str, targets: List[str]) -> Dict[str, int]:
         """
         根据基准语言填充目标语言缺失字段，值设为空字符串
@@ -49,7 +63,6 @@ class I18nLoader:
             Dict[str, int]: 每个目标语言补充的字段数量
         """
         all_data = self.all_data
-
         if base not in all_data:
             log_error(f"基准语言 {base} 不存在于数据中")
 
@@ -69,19 +82,43 @@ class I18nLoader:
             for k in missing_keys:
                 target_data[k] = ""
 
-            # 写回原 JSON 文件
-            files = expand_pattern(self.cfg.base_dir, self.cfg.pattern, lang)
-            for path in files:
-                # 只写回 namespace 对应的键
-                namespace = path.stem
-                json_to_write = unflatten_json(target_data, namespace)
-                bak_file = self.bak_dir / lang / path.name
-                bak_file.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(path, bak_file)  # 备份
-
-                save_json(path, json_to_write)
+            self.save_language(lang, target_data)
 
             filled_counts[lang] = len(missing_keys)
             log_info(f"为语言 {lang} 补充了 {len(missing_keys)} 个缺失字段")
 
         return filled_counts
+
+    def sync_order(self, base: str, targets: List[str]) -> None:
+        all_data = self.all_data
+        if base not in all_data:
+            log_error(f"基准语言 {base} 不存在于数据中")
+
+        base_data = all_data[base]
+
+        for lang in targets:
+            if lang not in all_data:
+                log_warn(f"语言 {lang} 不存在于数据中，跳过")
+                continue
+
+            target_data = all_data[lang]
+            synced_data = sync_field_order(base_data, target_data)
+
+            self.save_language(lang, synced_data)
+            log_info(f"语言 {lang} 字段顺序已同步")
+
+
+def sync_field_order(base_data: dict[str, str], target_data: dict[str, str]) -> Dict[str, str]:
+    """按照 base_data 的键顺序重新排序 target_data"""
+    synced: Dict[str, str] = {}
+    for key in base_data:
+        if key in target_data:
+            synced[key] = target_data[key]
+
+    # 将 base_data 中没有的键追加到最后
+    for key in target_data:
+        if key not in synced:
+            synced[key] = target_data[key]
+            log_warn(f"基准语言缺失字段 '{key}' ,需要检查")
+
+    return synced
